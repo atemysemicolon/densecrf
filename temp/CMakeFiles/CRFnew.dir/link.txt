@@ -1,0 +1,1 @@
+/usr/bin/c++    -std=c++11    CMakeFiles/CRFnew.dir/main.cpp.o  -o CRFnew -rdynamic 
