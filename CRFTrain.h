@@ -100,6 +100,16 @@ private:
     bool save_every_it;
     bool load_every_it;
     std::string folder_cache;
+    std::string folder_energy;
+    std::string folder_segment;
+    std::string folder_image;
+    std::string folder_anno;
+    std::string en_ex;
+    std::string seg_ex;
+    std::string im_ex;
+    std::string ann_ex;
+    bool input_text;
+    cv::Mat mseg,mun,annMat;
 
     //auxiliar Functions-------------------
     void saveMap(cv::Mat &prediction, std::string filename)
@@ -161,7 +171,36 @@ private:
         return r;
 
     }
+    std::vector<std::string> readmat(std::string filename) //Read file function
+    {
+        std::string line;
+        std::vector<std::string> lines;
+        std::ifstream fin;
 
+        fin.open(filename);
+        if(fin.is_open())
+        {
+            while(std::getline(fin,line))
+            {
+                lines.push_back(line);
+            }
+        }
+
+        return lines;
+    }
+        /*
+    cv::Mat parsematLine(std::string &line)
+    {
+        std::istringstream iss(line);
+        cv::Mat v;
+        std::copy(std::istream_iterator<float>(iss),
+                  std::istream_iterator<float>(),
+                  std::back_inserter(v));
+
+        return v;
+    }
+
+    */
 
 
     std::vector<float> parseLine(std::string &line)
@@ -268,6 +307,17 @@ private:
 
         return vals;
     }
+    cv::Mat parseintomat(std::vector<std::string> &lines)
+    {
+        cv::Mat vals;
+        for(int i=0;i<lines.size();i++)
+        {
+            std::vector<float> v = parseLine(lines[i]);
+            vals.push_back(v);
+        }
+
+        return vals;
+    }
 
     void parseStringFile2(std::vector<std::string> &lines, std::vector<std::vector<float>> &vals)
     {
@@ -336,32 +386,66 @@ public:
         folder_cache=s;
     }
 
-    bool loadUnaries(std::string fn_energy,std::string fn_segments,std::string  fn_image, std::string fn_anno){
+    void setFolders(std::string fl_energy, std::string fl_segments,std::string fl_image, std::string fl_anno){
+        folder_energy = fl_energy;
+        folder_segment=fl_segments;
+        folder_image = fl_image;
+        folder_anno = fl_anno;
 
+    }
+    void  setExtensions(std::string enex, std::string segex,std::string imex,std::string annex, bool is_mat){
+        en_ex= enex;
+        seg_ex=segex;
+        im_ex=imex;
+        ann_ex= annex;
+        if (is_mat){
+            input_text= false;
+        }else input_text = true;
 
-        cv::Mat mseg,mun,annMat;
+    }
+    void readDatas(std::string filename){
 
-        //Unaries
-        std::vector<std::string> lines = readFile(fn_energy);
-        std::vector<std::vector<float>> data = parseStringFile(lines);
-
-        //seg
-
-        std::vector<std::string> linesseg = readFile(fn_segments);
-        std::vector<std::vector<float> > dataseg;
-
-
-        parseStringFile2(linesseg,dataseg);
-
+        std::string image = folder_image +filename+im_ex;
+        //std::cout<<image;
+        std::vector<std::vector<float>> data;
+        std::vector<std::string> lines;
         //image
-        im = readPPM(fn_image.c_str(), W, H);
+        im = readPPM(image.c_str(), W, H);
         if (!im) {
             std::cout<<("Failed to load image!\n");
             //return 1;
         }
+        //ENergies
+        if(input_text){
+            lines = readFile(folder_energy+filename+en_ex);
+            data = parseStringFile(lines);
+        }else{
+            lines = readFile(folder_energy+filename+en_ex);
+            //mun = parseintomat(lines);
+        }
+        //Segments
+        std::vector<std::string> linesseg = readFile(folder_segment+filename+seg_ex);
+        std::vector<std::vector<float> > dataseg;
+        parseStringFile2(linesseg,dataseg);
+        std::vector<float> v;
+        mseg =cv::Mat(dataseg.size(),dataseg[0].size(), CV_32S);
+        for(int i=0;i<mseg.rows;i++)
+        {
+            v=dataseg[i];
+            for(int j=0;j<mseg.cols;j++)
+                mseg.at<int>(i,j) = v[j];
+        }
+        if (input_text){
+            mun = cv::Mat(data.size(), data[0].size(),CV_32F);
+            for(int i=0;i<mun.rows;i++)
+            {
+                v=data[i];
+                for(int j=0;j<mun.cols;j++)
+                    mun.at<float>(i,j) = v[j];
+            }
 
-        //annotations
-        std::vector<std::string> linesann = readFile(fn_anno);
+        }
+        std::vector<std::string> linesann = readFile(folder_anno+filename+ann_ex);
         std::vector<std::vector<float> > datanno;
         parseStringFile2(linesann,datanno);
         std::vector<float> v1;
@@ -372,42 +456,23 @@ public:
             for(int j=0;j<annMat.cols;j++)
                 annMat.at<int>(i,j) = v1[j];
         }
-        std::cout<<annMat.size()<<std::endl;
+        //std::cout<<annMat.size()<<std::endl;
         annMat = annMat.reshape(1,annMat.rows*annMat.cols);
         Matrix<short,Dynamic,1> annEi;
         cv::cv2eigen(annMat, annEi);
         labeling = annEi;
 
 
-        //creating unary:
-        std::vector<float> v;
-        mseg =cv::Mat(dataseg.size(),dataseg[0].size(), CV_32S);
-        for(int i=0;i<mseg.rows;i++)
-        {
-            v=dataseg[i];
-            for(int j=0;j<mseg.cols;j++)
-                mseg.at<int>(i,j) = v[j];
-        }
+    }
 
-        mun = cv::Mat(data.size(), data[0].size(),CV_32F);
-        for(int i=0;i<mun.rows;i++)
-        {
-            v=data[i];
-            for(int j=0;j<mun.cols;j++)
-                mun.at<float>(i,j) = v[j];
-        }
-
-
-        if(!im || mseg.empty() || mun.empty())
-            return false;
-
+    bool loadUnaries(){
 
         cv::Mat expandedEnergy = expandEnergy(mun,mseg);
 
         //M = mun.cols;
         unary = computeUnary( expandedEnergy,  M );
 
-        return true;
+       // return true;
 
     }
 
