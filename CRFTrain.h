@@ -492,7 +492,7 @@ public:
         crf.addPairwiseGaussian( 3, 3, new PottsCompatibility( 3 ) );  //3 terms on addpariwisegaussian?
         crf.addPairwiseBilateral(80, 80, 13, 13, 13, im, new MatrixCompatibility(MatrixXf::Identity(M, M)));
 
-        if(load_every_it && file_nr>0)
+        if(file_nr>0)
             loadAllParams(crf,folder_cache);
 
 
@@ -541,10 +541,12 @@ public:
             std::cout << "Pairwise parameters: " << crf.labelCompatibilityParameters().transpose() << std::endl;
             std::cout << "Kernel parameters: " << crf.kernelParameters().transpose() << std::endl;
 
+            //if(this->save_every_it)
+                saveAllParams(crf,folder_cache);
         }
 
-        if(this->save_every_it)
-            saveAllParams(crf,folder_cache);
+
+
         file_nr++;
 
 

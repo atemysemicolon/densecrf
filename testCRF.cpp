@@ -9,7 +9,7 @@ int main()
 
     std::string folder_datasetEne = "/home/prasscvc/Development/workspace/CamVid/FEATS/";
     std::string folder_datasetSeg = "/home/prasscvc/Development/workspace/CamVid/SEGS/";
-    std::string folder_datasetim = "/home/prasscvc/Development/workspace/Images/";
+    std::string folder_datasetim = "/home/prassanna/Development/Datasets/CamVid_new/Resplit/Images_ppm/";
     std::string energyex = ".boosted.txt";
     std::string segex = ".seg";
     std::string imex = ".ppm";
